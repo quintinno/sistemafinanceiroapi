@@ -1,29 +1,49 @@
 package br.com.quintinno.sistemafinanceiroapi.service;
 
-import java.util.Date;
+import java.io.File;
 import java.util.HashMap;
-import java.util.Map;
 
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ResourceUtils;
 
+import net.sf.jasperreports.engine.JREmptyDataSource;
 import net.sf.jasperreports.engine.JRException;
-import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.util.JRLoader;
 
 @Service
 public class RelatorioService {
 	
-	public void gerarRelatorioInstituicaoFinanceira() throws JRException {
-		String enderecoRelatorio = "C:\\Desenvolvimento\\sistemafinanceiroapi\\src\\main\\resources\\report\\relatorio_instituicao_bancaria.jrxml";
-		Map<String, Object> parametroMap = new HashMap<>();
-			parametroMap.put("nome", "Banco do Brasil");
-			parametroMap.put("data_cadastro", new Date());
-		JasperReport jasperReport = JasperCompileManager.compileReport(enderecoRelatorio);
-		JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parametroMap);
-		JasperExportManager.exportReportToPdfFile(jasperPrint, "C:\\Desenvolvimento\\sistemafinanceiroapi\\src\\main\\resources\\report\\relatorio_instituicao_bancaria.pdf");
+	public ResponseEntity<Resource> gerarRelatorioInstituicaoFinanceira() throws JRException { 
+		try {
+			File file = ResourceUtils.getFile("classpath:relatorio_instituicao_bancaria.jasper");
+			JasperReport jasperReport = (JasperReport) JRLoader.loadObject(file);
+			HashMap<String, Object> parametroHashMap = new HashMap<>();
+				parametroHashMap.put("nome", "Banco do Brasil");
+			JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parametroHashMap, new JREmptyDataSource());
+			byte[] arquivoByte = JasperExportManager.exportReportToPdf(jasperPrint);
+			ContentDisposition contentDisposition = ContentDisposition.builder("attachment").filename("RELATORIO_INSTITUICAO_FINANCEIRA.pdf").build();
+			HttpHeaders httpHeaders = new HttpHeaders();
+				httpHeaders.setContentDisposition(contentDisposition);
+			return ResponseEntity.ok().contentLength(arquivoByte.length)
+					.contentType(MediaType.APPLICATION_PDF)
+					.headers(httpHeaders)
+					.body(new ByteArrayResource(arquivoByte));
+		} catch (Exception e) {
+			System.out.println("Erro: " + e.getMessage());
+			ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+		}
+		return null;
 	}
 
 }
