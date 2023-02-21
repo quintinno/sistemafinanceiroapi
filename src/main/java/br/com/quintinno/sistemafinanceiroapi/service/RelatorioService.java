@@ -40,10 +40,14 @@ public class RelatorioService {
 					.headers(httpHeaders)
 					.body(new ByteArrayResource(arquivoByte));
 		} catch (Exception e) {
-			System.out.println("Erro: " + e.getMessage());
-			ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+			if (e.getMessage().contains("class path resource")) {
+				System.out.println("Error: Não encontrado o arquivo .JASPER no CLASSPATH!");
+			}
+			if (e.getMessage().contains("The byte array is not a recognized imageformat")) {
+				System.out.println("Error: Não foi possível converter o arquivo para o formado selecionado!");
+			}
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
 		}
-		return null;
 	}
 
 }
